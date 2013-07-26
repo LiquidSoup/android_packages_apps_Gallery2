@@ -29,6 +29,10 @@
 #include "ImageUtils.h"
 #include "MatrixUtils.h"
 
+#if __cplusplus < 201103L && !defined(__GXX_EXPERIMENTAL_CXX0X__) && !defined(constexpr)
+#define constexpr const
+#endif
+
 class Align {
 
 public:
@@ -44,7 +48,7 @@ public:
   ///// Settings for feature-based alignment
   // Number of features to use from corner detection
   static const int DEFAULT_NR_CORNERS=750;
-  static const double DEFAULT_MAX_DISPARITY=0.1;//0.4;
+  static constexpr double DEFAULT_MAX_DISPARITY=0.1;//0.4;
   // Type of homography to model
   static const int DEFAULT_MOTION_MODEL=DB_HOMOGRAPHY_TYPE_R_T;
 // static const int DEFAULT_MOTION_MODEL=DB_HOMOGRAPHY_TYPE_PROJECTIVE;
