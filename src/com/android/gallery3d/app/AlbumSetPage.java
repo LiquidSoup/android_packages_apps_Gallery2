@@ -671,6 +671,11 @@ public class AlbumSetPage extends ActivityState implements
                 mRootPane.invalidate();
                 break;
             }
+            case SelectionManager.DESELECT_ALL_MODE: {
+                mActionModeHandler.updateSupportedOperation();
+                mRootPane.invalidate();
+                break;
+            }
         }
     }
 
