@@ -1159,4 +1159,7 @@ CHAR LIMIT = NONE] -->
     <string name="fail_trim">Sorry, this video file can not be trimmed</string>
     <string name="can_not_trim">Only mp4 file can be trimmed</string>
 
+    <!-- More Settings screen, storage title -->
+    <string name="pref_camera_storage_title">Storage</string>
+
 </resources>
