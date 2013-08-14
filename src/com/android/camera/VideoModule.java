@@ -443,6 +443,7 @@ public class VideoModule implements CameraModule,
 
         readVideoPreferences();
         mUI.setPrefChangedListener(this);
+
         mStartPreviewThread = new StartPreviewThread();
         mStartPreviewThread.start();
 
