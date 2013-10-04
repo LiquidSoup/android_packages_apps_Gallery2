@@ -507,6 +507,19 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         }
     }
 
+    public boolean onBackPressed() {
+	if (mPieRenderer != null && mPieRenderer.showsItems()) {
+            mPieRenderer.hide();
+            return true;
+        }
+        if (mController.isVideoCaptureIntent()) {
+	    //Should not reach here
+            return true;
+        } else {
+            return collapseCameraControls();
+        }
+    }
+
     public void onFullScreenChanged(boolean full) {
         if (mGestures != null) {
             mGestures.setEnabled(full);

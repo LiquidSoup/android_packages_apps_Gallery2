@@ -1205,13 +1205,12 @@ public class VideoModule implements CameraModule,
 
     @Override
     public boolean onBackPressed() {
-        if (mPaused) return true;
-        if (mMediaRecorderRecording) {
+	 if (mPaused) return true;
+	 if (mMediaRecorderRecording) {
             onStopVideoRecording();
             return true;
         } else {
-            mUI.dismissPopup();
-            return true;
+	   return mUI.onBackPressed();
         }
     }
 
