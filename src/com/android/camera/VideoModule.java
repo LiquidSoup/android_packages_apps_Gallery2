@@ -455,6 +455,7 @@ public class VideoModule implements CameraModule,
 
         readVideoPreferences();
         mUI.setPrefChangedListener(this);
+
         mStartPreviewThread = new StartPreviewThread();
         mStartPreviewThread.start();
 
@@ -521,41 +522,37 @@ public class VideoModule implements CameraModule,
     // Preview area is touched. Take a picture.
     @Override
     public void onSingleTapUp(View view, int x, int y) {
-    // Do not trigger touch focus if popup window is opened.
-
-    mFocusManager.onSingleTapUp(x, y);
-        if (!Util.disableTouchSnapshot()) {
-            if (mMediaRecorderRecording && effectsActive()) {
-                new RotateTextToast(mActivity, R.string.disable_video_snapshot_hint,
-                        mOrientation).show();
-                return;
-            }
-
-            MediaSaveService s = mActivity.getMediaSaveService();
-            if (mPaused || mSnapshotInProgress || effectsActive() || s == null || s.isQueueFull()) {
-                return;
-            }
-
-            if (!mMediaRecorderRecording) {
-                // check for dismissing popup
-                mUI.dismissPopup();
-                return;
-            }
-
-            // Set rotation and gps data.
-            int rotation = Util.getJpegRotation(mCameraId, mOrientation);
-            mParameters.setRotation(rotation);
-            Location loc = mLocationManager.getCurrentLocation();
-            Util.setGpsParameters(mParameters, loc);
-            mActivity.mCameraDevice.setParameters(mParameters);
-
-            Log.v(TAG, "Video snapshot start");
-            mActivity.mCameraDevice.takePicture(null, null, null, new JpegPictureCallback(loc));
-            showVideoSnapshotUI(true);
-            mSnapshotInProgress = true;
-            UsageStatistics.onEvent(UsageStatistics.COMPONENT_CAMERA,
-                    UsageStatistics.ACTION_CAPTURE_DONE, "VideoSnapshot");
+        if (mMediaRecorderRecording && effectsActive()) {
+            new RotateTextToast(mActivity, R.string.disable_video_snapshot_hint,
+                    mOrientation).show();
+            return;
         }
+
+        MediaSaveService s = mActivity.getMediaSaveService();
+        if (mPaused || mSnapshotInProgress || effectsActive() || s == null || s.isQueueFull()
+            || !Util.isVideoSnapshotSupported(mParameters)) {
+            return;
+        }
+
+        if (!mMediaRecorderRecording) {
+            // check for dismissing popup
+            mUI.dismissPopup();
+            return;
+        }
+
+        // Set rotation and gps data.
+        int rotation = Util.getJpegRotation(mCameraId, mOrientation);
+        mParameters.setRotation(rotation);
+        Location loc = mLocationManager.getCurrentLocation();
+        Util.setGpsParameters(mParameters, loc);
+        mActivity.mCameraDevice.setParameters(mParameters);
+
+        Log.v(TAG, "Video snapshot start");
+        mActivity.mCameraDevice.takePicture(null, null, null, new JpegPictureCallback(loc));
+        showVideoSnapshotUI(true);
+        mSnapshotInProgress = true;
+        UsageStatistics.onEvent(UsageStatistics.COMPONENT_CAMERA,
+                UsageStatistics.ACTION_CAPTURE_DONE, "VideoSnapshot");
     }
 
     @Override
@@ -889,12 +886,12 @@ public class VideoModule implements CameraModule,
     public void onResumeAfterSuper() {
         if (mActivity.mOpenCameraFail || mActivity.mCameraDisabled)
             return;
-        mUI.enableShutter(false);
         mZoomValue = 0;
 
         showVideoSnapshotUI(false);
+        mUI.enableShutter(false);
 
-        if (!mPreviewing) {
+        if (!mPreviewing && mStartPreviewThread == null) {
             resetEffect();
             openCamera();
             if (mActivity.mOpenCameraFail) {
@@ -1642,9 +1639,9 @@ public class VideoModule implements CameraModule,
     @Override
     public void onError(MediaRecorder mr, int what, int extra) {
         Log.e(TAG, "MediaRecorder error. what=" + what + ". extra=" + extra);
+        stopVideoRecording();
         if (what == MediaRecorder.MEDIA_RECORDER_ERROR_UNKNOWN) {
             // We may have run out of space on the sdcard.
-            stopVideoRecording();
             mActivity.updateStorageSpaceAndHint();
         }
     }
@@ -2403,8 +2400,7 @@ public class VideoModule implements CameraModule,
             mActivity.setSingleTapUpListener(mUI.getPreview());
             // Show the tap to focus toast if this is the first start.
             if (mPreferences.getBoolean(
-                        CameraSettings.KEY_VIDEO_FIRST_USE_HINT_SHOWN, true)
-                        && !Util.disableTouchSnapshot()) {
+                        CameraSettings.KEY_VIDEO_FIRST_USE_HINT_SHOWN, true)) {
                 // Delay the toast for one second to wait for orientation.
                 mHandler.sendEmptyMessageDelayed(SHOW_TAP_TO_SNAPSHOT_TOAST, 1000);
             }
@@ -2521,14 +2517,12 @@ public class VideoModule implements CameraModule,
     }
 
     private void showTapToSnapshotToast() {
-        if (!Util.disableTouchSnapshot()) {
-            new RotateTextToast(mActivity, R.string.video_snapshot_hint, 0)
-                    .show();
-            // Clear the preference.
-            Editor editor = mPreferences.edit();
-            editor.putBoolean(CameraSettings.KEY_VIDEO_FIRST_USE_HINT_SHOWN, false);
-            editor.apply();
-        }
+        new RotateTextToast(mActivity, R.string.video_snapshot_hint, 0)
+                .show();
+        // Clear the preference.
+        Editor editor = mPreferences.edit();
+        editor.putBoolean(CameraSettings.KEY_VIDEO_FIRST_USE_HINT_SHOWN, false);
+        editor.apply();
     }
 
     @Override
@@ -2547,11 +2541,17 @@ public class VideoModule implements CameraModule,
             // We need to keep a preview frame for the animation before
             // releasing the camera. This will trigger onPreviewTextureCopied.
             ((CameraScreenNail) mActivity.mCameraScreenNail).copyTexture();
-            // Disable all camera controls.
-            mSwitchingCamera = true;
         } else {
             switchCamera();
         }
+    }
+
+    @Override
+    public void onCameraPickerSuperClicked() {
+        if (mPaused || mPendingSwitchCameraId != -1) return;
+
+        // Disable all camera controls.
+        mSwitchingCamera = true;
     }
 
     @Override

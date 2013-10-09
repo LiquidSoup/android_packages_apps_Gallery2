@@ -73,6 +73,13 @@ public class VideoMenu extends PieController
                     [lpref.findIndexOfValue(lpref.getValue())]);
 
             final PieItem fitem = item;
+            item.setOnSuperClickListener(new OnClickListener() {
+
+                @Override
+                public void onClick(PieItem item) {
+                    mListener.onCameraPickerSuperClicked();
+                }
+            });
             item.setOnClickListener(new OnClickListener() {
 
                 @Override
@@ -197,8 +204,7 @@ public class VideoMenu extends PieController
             settings.addItem(item);
         }
         // jpeg quality
-        if (group.findPreference(CameraSettings.KEY_VIDEO_JPEG) != null
-            && !Util.disableTouchSnapshot()) {
+        if (group.findPreference(CameraSettings.KEY_VIDEO_JPEG) != null) {
             item = makeItem(R.drawable.ic_jpeg);
             final ListPreference effectPref = group.findPreference(CameraSettings.KEY_VIDEO_JPEG);
             item.setLabel(res.getString(R.string.pref_jpeg_title).toUpperCase(locale));
